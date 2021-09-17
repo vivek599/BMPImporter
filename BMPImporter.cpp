@@ -48,46 +48,19 @@ BMPImporter::BMPImporter(const char* fileName) : BMPHeader{}, DibHeader{}
 		return;
 	}
 
-	infile.seekg(BMPHeader.Offset, SEEK_SET);
+	infile.seekg(BMPHeader.Offset, ios::beg);
 
-	size_t pixelRowSize = (( DibHeader.BitsPerPixel * abs(DibHeader.Width) + 31) / 32) * 4;
-	int numRGB = pixelRowSize / sizeof(RGB) + 1;
+	size_t pixelRowSize = (( (size_t)DibHeader.BitsPerPixel * abs(DibHeader.Width) + 31) / 32) * 4;
 
-	//PixelData.reserve(pixelRowSize * abs(DibHeader.Height));
-
-	//for (int i = abs(DibHeader.Height) - 1; i >= 0; i--)
-	//{
-	//	uint8_t* pixelRowData = new uint8_t[pixelRowSize];
-	//	infile.read(reinterpret_cast<char*>(pixelRowData), pixelRowSize);
-	//	
-	//	PixelData.insert( PixelData.end(), pixelRowData, pixelRowData + numRGB);
-	//	
-	//	//for (size_t j = 0; j < numRGB; j++)
-	//	//{
-	//	//	PixelData.push_back(pixelRowData[j]);
-	//	//}
-	//	
-	//	delete[] pixelRowData;
-	//}
-
-	PixelData.resize( DibHeader.BitsPerPixel * abs(DibHeader.Width) * abs(DibHeader.Height) / 8);
+	PixelData.resize( pixelRowSize * abs(DibHeader.Height) );
 	infile.read(reinterpret_cast<char*>(PixelData.data()), PixelData.size());
-
-
  	infile.close();
 
-	ofstream outFile("out.bmp");
-
+	ofstream outFile("out.bmp", ios::binary);
 	outFile.write( BMPHeader.Header, 2);
 	outFile.write( reinterpret_cast<char*>(&BMPHeader.Size), 3 * sizeof(int));
 	outFile.write( reinterpret_cast<char*>(&DibHeader), sizeof(DIBHeader));
-
-	/*for (int i = abs(DibHeader.Height) - 1; i >= 0; i--)
-	{
-		outFile.write(reinterpret_cast<char*>(&PixelData[i]), pixelRowSize);
-	}*/
-
-	outFile.write(reinterpret_cast<char*>(PixelData.data()), PixelData.size());
+	outFile.write( reinterpret_cast<char*>(PixelData.data()), PixelData.size());
 
 	outFile.close();
 
