@@ -3,8 +3,11 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <assert.h>
 
 using namespace std;
+
+#pragma pack( push, 1 )
 
 struct RGB
 {
@@ -36,6 +39,8 @@ struct DIBHeader
 	unsigned int		ImportantColorsUsed;	//number of important colors used, or 0 when every color is important; generally ignored
 }; 
 
+#pragma pack( pop )
+
 class BMPImporter
 {
 
@@ -43,23 +48,20 @@ public:
 	BMPImporter( const char* fileName );
 	~BMPImporter();
 
-	uint32_t make_stride_aligned(uint32_t align_stride, uint32_t row_stride)
-	{
-		uint32_t new_stride = row_stride;
-		while (new_stride % align_stride != 0) 
-		{
-			new_stride++;
-		}
+	void Write(const char* fileName);
 
-		return new_stride;
-	}
+	int GetWidth();
+	int GetHeight();
+	int GetBitPerPixel();
 
 private:
-	BitmapFileHeader	BMPHeader;
-	DIBHeader			DibHeader;
+	bool ReadBMP(const char* fileName);
 
-	vector<uint8_t>		PixelData;
-	RGB**				RGBData;
+	BitmapFileHeader	m_BMPHeader;
+	DIBHeader			m_DibHeader;
+	size_t				m_PixelRowSize;
+
+	vector<uint8_t>		m_PixelData;
 	
 };
 
