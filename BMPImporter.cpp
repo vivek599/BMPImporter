@@ -10,7 +10,7 @@ bool BMPImporter::ReadBMP(const char* fileName)
 {
 	ifstream infile;
 
-	infile.open(fileName, ios::binary);
+	infile.open(fileName, ios_base::binary);
 
 	if (!infile.is_open())
 	{
@@ -48,13 +48,25 @@ bool BMPImporter::ReadBMP(const char* fileName)
 	cout << "NumColorInPalette----: " << m_DibHeader.NumColorInPalette << endl;
 	cout << "ImportantColorsUsed--: " << m_DibHeader.ImportantColorsUsed << endl;
 
-	if (m_DibHeader.BitsPerPixel != 24)
+	if (m_DibHeader.BitsPerPixel != 24 && m_DibHeader.BitsPerPixel != 32)
 	{
 		cout << "Incorrect BitsPerPixel" << m_DibHeader.BitsPerPixel << endl;
 		return false;
 	}
 
-	infile.seekg(m_BMPHeader.Offset, ios::beg);
+	if (m_DibHeader.BitsPerPixel != 32)
+	{
+		infile.read(reinterpret_cast<char*>(&m_BGRAHeader), sizeof(BMPColorHeader32));
+	}
+
+	cout << "RedMask---------: " << m_BGRAHeader.RedMask << endl;
+	cout << "GreenMask-------: " << m_BGRAHeader.GreenMask << endl;
+	cout << "BlueMask--------: " << m_BGRAHeader.BlueMask << endl;
+	cout << "AlphaMask-------: " << m_BGRAHeader.AlphaMask << endl;
+	cout << "ColorSpaceType--: " << m_BGRAHeader.ColorSpaceType << endl;
+	cout << "Unused[0]-------: " << m_BGRAHeader.Unused[0]	<< endl;
+
+	infile.seekg(m_BMPHeader.Offset, ios_base::beg);
 
 	m_PixelRowSize = (((size_t)m_DibHeader.BitsPerPixel * abs(m_DibHeader.Width) + 31) / 32) * 4;
 
@@ -67,10 +79,14 @@ bool BMPImporter::ReadBMP(const char* fileName)
 
 void BMPImporter::Write(const char* fileName)
 {
-	ofstream outFile(fileName, ios::binary);
+	ofstream outFile(fileName, ios_base::binary);
 	outFile.write(m_BMPHeader.Header, 2);
 	outFile.write(reinterpret_cast<char*>(&m_BMPHeader.Size), 3 * sizeof(int));
 	outFile.write(reinterpret_cast<char*>(&m_DibHeader), sizeof(DIBHeader));
+	if (m_DibHeader.BitsPerPixel == 32)
+	{
+		outFile.write(reinterpret_cast<char*>(&m_BGRAHeader), sizeof(BMPColorHeader32));
+	}
 	outFile.write(reinterpret_cast<char*>(m_PixelData.data()), m_PixelData.size());
 	outFile.close();
 }
@@ -93,4 +109,31 @@ int BMPImporter::GetHeight()
 int BMPImporter::GetBitPerPixel()
 {
 	return m_DibHeader.BitsPerPixel;
+}
+
+RGB BMPImporter::GetPixel( int x, int y )
+{
+	assert( x > 0 && x <= GetWidth() && y > 0 && y <= GetHeight() );
+
+	int channels = m_DibHeader.BitsPerPixel / 8;
+
+	uint8_t B = m_PixelData[channels * (y * GetWidth() + x) + 0];
+	uint8_t G = m_PixelData[channels * (y * GetWidth() + x) + 1];
+	uint8_t R = m_PixelData[channels * (y * GetWidth() + x) + 2];
+
+	if (channels == 4) 
+	{
+		uint8_t A = m_PixelData[(y * m_PixelRowSize + x) + 3];
+	}
+
+	return { B, G, R };
+}
+
+void BMPImporter::SetPixel(int x, int y, RGB rgb)
+{
+	int channels = m_DibHeader.BitsPerPixel / 8;
+
+	m_PixelData[(y * m_PixelRowSize + x) + 0] = rgb.Blue;
+	m_PixelData[(y * m_PixelRowSize + x) + 1] = rgb.Green;
+	m_PixelData[(y * m_PixelRowSize + x) + 2] = rgb.Red;
 }

@@ -9,13 +9,6 @@ using namespace std;
 
 #pragma pack( push, 1 )
 
-struct RGB
-{
-	unsigned char Blue;
-	unsigned char Green;
-	unsigned char Red;
-};
-
 struct BitmapFileHeader
 {
 	char			Header[2];			//header field - BM
@@ -39,6 +32,33 @@ struct DIBHeader
 	unsigned int		ImportantColorsUsed;	//number of important colors used, or 0 when every color is important; generally ignored
 }; 
 
+struct RGB
+{
+	uint8_t Blue;
+	uint8_t Green;
+	uint8_t Red;
+};
+
+struct BMPColorHeader32 
+{
+	uint32_t RedMask;			// Bit mask for the red channel
+	uint32_t GreenMask;		// Bit mask for the green channel
+	uint32_t BlueMask;			// Bit mask for the blue channel
+	uint32_t AlphaMask;		// Bit mask for the alpha channel
+	uint32_t ColorSpaceType;	// Default "sRGB" (0x73524742)
+	uint32_t Unused[16];		// Unused data for sRGB color space
+	
+	BMPColorHeader32() :
+		RedMask(0x00ff0000),
+		GreenMask(0x0000ff00),
+		BlueMask(0x000000ff),
+		AlphaMask(0xff000000),
+		ColorSpaceType(0x73524742)
+	{
+		memset(Unused, 0, 16*sizeof(uint32_t));
+	}
+};
+
 #pragma pack( pop )
 
 class BMPImporter
@@ -53,12 +73,15 @@ public:
 	int GetWidth();
 	int GetHeight();
 	int GetBitPerPixel();
+	RGB GetPixel(int x, int y);
+	void SetPixel(int x, int y, RGB rgb);
 
 private:
 	bool ReadBMP(const char* fileName);
 
 	BitmapFileHeader	m_BMPHeader;
 	DIBHeader			m_DibHeader;
+	BMPColorHeader32	m_BGRAHeader;
 	size_t				m_PixelRowSize;
 
 	vector<uint8_t>		m_PixelData;
