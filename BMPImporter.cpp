@@ -111,9 +111,9 @@ int BMPImporter::GetBitPerPixel()
 	return m_DibHeader.BitsPerPixel;
 }
 
-RGB BMPImporter::GetPixel( int x, int y )
+BGR BMPImporter::GetPixel( int x, int y )
 {
-	assert( x > 0 && x <= GetWidth() && y > 0 && y <= GetHeight() );
+	assert( x >= 0 && x < GetWidth() && y >= 0 && y < GetHeight() );
 
 	int channels = m_DibHeader.BitsPerPixel / 8;
 
@@ -129,11 +129,11 @@ RGB BMPImporter::GetPixel( int x, int y )
 	return { B, G, R };
 }
 
-void BMPImporter::SetPixel(int x, int y, RGB rgb)
+void BMPImporter::SetPixel(int x, int y, BGR bgr)
 {
 	int channels = m_DibHeader.BitsPerPixel / 8;
 
-	m_PixelData[(y * m_PixelRowSize + x) + 0] = rgb.Blue;
-	m_PixelData[(y * m_PixelRowSize + x) + 1] = rgb.Green;
-	m_PixelData[(y * m_PixelRowSize + x) + 2] = rgb.Red;
+	m_PixelData[channels * (y * GetWidth() + x) + 0] = bgr.Blue;
+	m_PixelData[channels * (y * GetWidth() + x) + 1] = bgr.Green;
+	m_PixelData[channels * (y * GetWidth() + x) + 2] = bgr.Red;
 }

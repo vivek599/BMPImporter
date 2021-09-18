@@ -32,7 +32,7 @@ struct DIBHeader
 	unsigned int		ImportantColorsUsed;	//number of important colors used, or 0 when every color is important; generally ignored
 }; 
 
-struct RGB
+struct BGR
 {
 	uint8_t Blue;
 	uint8_t Green;
@@ -73,8 +73,8 @@ public:
 	int GetWidth();
 	int GetHeight();
 	int GetBitPerPixel();
-	RGB GetPixel(int x, int y);
-	void SetPixel(int x, int y, RGB rgb);
+	BGR GetPixel(int x, int y);
+	void SetPixel(int x, int y, BGR rgb);
 
 private:
 	bool ReadBMP(const char* fileName);
