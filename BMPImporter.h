@@ -32,19 +32,20 @@ struct DIBHeader
 	unsigned int		ImportantColorsUsed;	//number of important colors used, or 0 when every color is important; generally ignored
 }; 
 
-struct BGR
+struct BGRA
 {
 	uint8_t Blue;
 	uint8_t Green;
 	uint8_t Red;
+	uint8_t Alpha;
 };
 
 struct BMPColorHeader32 
 {
 	uint32_t RedMask;			// Bit mask for the red channel
-	uint32_t GreenMask;		// Bit mask for the green channel
+	uint32_t GreenMask;			// Bit mask for the green channel
 	uint32_t BlueMask;			// Bit mask for the blue channel
-	uint32_t AlphaMask;		// Bit mask for the alpha channel
+	uint32_t AlphaMask;			// Bit mask for the alpha channel
 	uint32_t ColorSpaceType;	// Default "sRGB" (0x73524742)
 	uint32_t Unused[16];		// Unused data for sRGB color space
 	
@@ -70,11 +71,15 @@ public:
 
 	void Write(const char* fileName);
 
-	int GetWidth();
-	int GetHeight();
-	int GetBitPerPixel();
-	BGR GetPixel(int x, int y);
-	void SetPixel(int x, int y, BGR rgb);
+	int				GetWidth();
+	int				GetHeight();
+	int				GetBitPerPixel();
+	BGRA			GetPixel(int x, int y);
+	void			SetPixel(int x, int y, BGRA rgb);
+
+	uint8_t*		GetPixelData();
+
+	DIBHeader*		GetBitmapHeader();
 
 private:
 	bool ReadBMP(const char* fileName);
