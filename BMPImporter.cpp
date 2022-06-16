@@ -54,7 +54,7 @@ bool BMPImporter::ReadBMP(const char* fileName)
 		return false;
 	}
 
-	if (m_DibHeader.BitsPerPixel != 32)
+	if (m_DibHeader.BitsPerPixel == 32)
 	{
 		infile.read(reinterpret_cast<char*>(&m_BGRAHeader), sizeof(BMPColorHeader32));
 	}
@@ -123,9 +123,7 @@ BGRA BMPImporter::GetPixel( int x, int y )
 	uint8_t A = 255;
 
 	if (channels == 4) 
-	{
-		uint8_t A = m_PixelData[y * m_PixelRowSize + x * channels + 3];
-	}
+		A = m_PixelData[y * m_PixelRowSize + x * channels + 3];
 
 	return { B, G, R, A };
 }

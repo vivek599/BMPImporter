@@ -27,7 +27,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 //	return 1;
 //}
 
-BMPImporter importer("Untitled.bmp");
+BMPImporter importer("Untitled32A.bmp");
+//BMPImporter importer("Untitled.bmp");
 
 bool CreateUserWindow(HINSTANCE hInstance, int Width, int Height, int nCmdShow)
 {
@@ -70,7 +71,7 @@ bool CreateUserWindow(HINSTANCE hInstance, int Width, int Height, int nCmdShow)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
 {
 
-    CreateUserWindow(hInstance, importer.GetWidth(), importer.GetHeight(), nCmdShow);
+    CreateUserWindow(hInstance, importer.GetWidth()+16, importer.GetHeight()+39, nCmdShow);
     // Run the message loop.
 
     MSG msg = { };
