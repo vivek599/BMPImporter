@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <assert.h>
+#include <Windows.h>
 
 using namespace std;
 
@@ -38,6 +39,24 @@ struct BGRA
 	uint8_t Green;
 	uint8_t Red;
 	uint8_t Alpha;
+
+	BGRA Lerp(BGRA B, float t)
+	{
+		BGRA Result;
+		Result.Blue = Blue + (B.Blue - Blue) * t;
+		Result.Green = Green + (B.Green - Green) * t;
+		Result.Red = Red + (B.Red - Red) * t;
+		Result.Alpha = Alpha + (B.Alpha - Alpha) * t;
+		return Result;
+	}
+	
+	void Scale(float t)
+	{
+		Blue = __min(Blue * t, 0xFF);
+		Green = __min(Green * t, 0xFF);
+		Red = __min(Red * t, 0xFF);
+		Alpha = __min(Alpha * t, 0xFF);
+	}
 };
 
 struct BMPColorHeader32 
@@ -66,11 +85,13 @@ class BMPImporter
 {
 
 public:
+	BMPImporter(uint8_t* PixelData, int Width, int Height, int Bpp);
 	BMPImporter( const char* fileName );
 	~BMPImporter();
 
 	void Write(const char* fileName);
-
+	
+	void			Resize(int Width, int Height);
 	int				GetWidth();
 	int				GetHeight();
 	int				GetBitPerPixel();
@@ -83,11 +104,13 @@ public:
 
 private:
 	bool ReadBMP(const char* fileName);
+	BGRA BilinearInterp(float Rx, float Ry, int w, int h);
 
 	BitmapFileHeader	m_BMPHeader;
 	DIBHeader			m_DibHeader;
 	BMPColorHeader32	m_BGRAHeader;
 	size_t				m_PixelRowSize;
+	size_t				m_Channels;
 
 	vector<uint8_t>		m_PixelData;
 	
