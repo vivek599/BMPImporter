@@ -59,6 +59,18 @@ int main()
     Gray64.Green = 0x40;
     Gray64.Red   = 0x40;
     Gray64.Alpha = 0xFF;
+    
+    BGRA Gray192;
+    Gray192.Blue  = 0x192;
+    Gray192.Green = 0x192;
+    Gray192.Red   = 0x192;
+    Gray192.Alpha = 0xFF;
+    
+    BGRA Gray128;
+    Gray128.Blue  = 0x80;
+    Gray128.Green = 0x80;
+    Gray128.Red   = 0x80;
+    Gray128.Alpha = 0xFF;
 
     for (int h = 0; h < Height; h++)
     {
@@ -66,31 +78,31 @@ int main()
         {
             if (w == 1 || h == 1)
             {
-                Texture.SetPixel(w, h, White);
+                Texture.SetPixel(w, h, Black);
             }
             else if (w == Width - 1 || h == Height - 1)
             {
-                Texture.SetPixel(w, h, White);
+                Texture.SetPixel(w, h, Black);
             }
             else if (w == Width - 2 || h == Height - 2)
             {
-                Texture.SetPixel(w, h, White);
+                Texture.SetPixel(w, h, Black);
             }
             else if (w == (Width + 2) / 2 || h == (Height + 2) / 2)
             {
-                Texture.SetPixel(w, h, White);
+                Texture.SetPixel(w, h, Black);
             }
             else if (w == (Width - 2) / 2 || h == (Height - 2) / 2)
             {
-                Texture.SetPixel(w, h, White);
+                Texture.SetPixel(w, h, Black);
             }
             else if ((w % CellSize == 0) || (h % CellSize == 0))
             {
-                Texture.SetPixel( w, h, White);
+                Texture.SetPixel( w, h, Black);
             }
             else
             {
-                Texture.SetPixel(w, h, Gray64);
+                Texture.SetPixel(w, h, Gray192);
             }
         }
     }
