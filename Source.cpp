@@ -27,6 +27,81 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 //	return 1;
 //}
 
+int main()
+{
+	BMPImporter Texture;
+
+    vector<uint8_t> Pixels;
+
+    int Width = 1024;
+    int Height = 1024;
+    int Channels = 3;
+    int Bpp = Channels * 8;
+    int CellSize = Width/16;
+
+    Pixels.resize(Width * Height * Bpp, 0xFF);
+    Texture.LoadBuffer(Pixels.data(), Width, Height, Bpp);
+
+    BGRA Black;
+    Black.Blue  = 0x00;
+    Black.Green = 0x00;
+    Black.Red   = 0x00;
+    Black.Alpha = 0xFF;
+    
+    BGRA White;
+    White.Blue  = 0xFF;
+    White.Green = 0xFF;
+    White.Red   = 0xFF;
+    White.Alpha = 0xFF;
+
+    BGRA Gray64;
+    Gray64.Blue  = 0x40;
+    Gray64.Green = 0x40;
+    Gray64.Red   = 0x40;
+    Gray64.Alpha = 0xFF;
+
+    for (int h = 0; h < Height; h++)
+    {
+        for (int w = 0; w < Width; w++)
+        {
+            if (w == 1 || h == 1)
+            {
+                Texture.SetPixel(w, h, White);
+            }
+            else if (w == Width - 1 || h == Height - 1)
+            {
+                Texture.SetPixel(w, h, White);
+            }
+            else if (w == Width - 2 || h == Height - 2)
+            {
+                Texture.SetPixel(w, h, White);
+            }
+            else if (w == (Width + 2) / 2 || h == (Height + 2) / 2)
+            {
+                Texture.SetPixel(w, h, White);
+            }
+            else if (w == (Width - 2) / 2 || h == (Height - 2) / 2)
+            {
+                Texture.SetPixel(w, h, White);
+            }
+            else if ((w % CellSize == 0) || (h % CellSize == 0))
+            {
+                Texture.SetPixel( w, h, White);
+            }
+            else
+            {
+                Texture.SetPixel(w, h, Gray64);
+            }
+        }
+    }
+
+    Texture.Write("PlaceHolderTexture01.bmp");
+
+	//system("pause");
+	return 1;
+}
+
+#if 0
 BMPImporter importer("Untitled32A.bmp");
 //BMPImporter importer("Untitled.bmp");
 
@@ -127,3 +202,5 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+
+#endif

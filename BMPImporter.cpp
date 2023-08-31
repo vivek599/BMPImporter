@@ -1,12 +1,25 @@
 #include "BMPImporter.h"
 
-BMPImporter::BMPImporter(const char* fileName) : m_BMPHeader{}, m_DibHeader{}
+BMPImporter::BMPImporter()
+{
+	m_BMPHeader = {};
+	m_DibHeader = {};
+	m_BGRAHeader = {};
+	m_PixelRowSize = 0;
+	m_Channels = 0;
+	m_PixelDataSize = 0;
+	m_TempBuffer = false;
+	m_PixelData = nullptr;
+
+}
+
+BMPImporter::BMPImporter(const char* fileName)  : BMPImporter()
 {
 	if( !ReadBMP(fileName) )
 		cout << "Bitmap Reading failed..." << endl;
 }
 
-BMPImporter::BMPImporter(uint8_t* PixelData, int Width = 256, int Height = 256, int Bpp = 24)
+void BMPImporter::LoadBuffer(uint8_t* PixelData, int Width, int Height, int Bpp)
 {
 	m_Channels = Bpp / 8;
 	
@@ -17,8 +30,7 @@ BMPImporter::BMPImporter(uint8_t* PixelData, int Width = 256, int Height = 256, 
 		return;
 	}
 	
-	m_BMPHeader.Header[0] = 'B';
-	m_BMPHeader.Header[1] = 'M';
+	m_BMPHeader.BmpTag = 'MB';
 	m_BMPHeader.Offset = 54;
 	m_BMPHeader.Reserved = 0;
 	m_BMPHeader.Size = Width * Height * m_Channels + 54;
@@ -36,29 +48,69 @@ BMPImporter::BMPImporter(uint8_t* PixelData, int Width = 256, int Height = 256, 
 	m_DibHeader.VerticleResolution = 0;
 
 	m_PixelRowSize = Width * m_Channels + (4 - (Width * m_Channels) % 4) % 4;
+	
+	delete[] m_PixelData;
+	m_PixelData = nullptr;
 
-	m_PixelData.clear();
-	m_PixelData.resize(m_PixelRowSize * Height);
-	int k = 0;
-	for (size_t h = 0; h < Height; h++)
+	try
 	{
-		for (size_t w = 0; w < Width; w++)
-		{
-			if (m_Channels >= 3)
-			{
-				m_PixelData[k + 0] = PixelData[k + 0];
-				m_PixelData[k + 1] = PixelData[k + 1];
-				m_PixelData[k + 2] = PixelData[k + 2];
-				k += 3;
-
-				if (m_Channels == 4)
-				{
-					m_PixelData[k + 3] = PixelData[k + 3];
-					k++;
-				}
-			}
-		}
+		m_PixelDataSize = m_PixelRowSize * Height;
+		m_PixelData = new uint8_t[m_PixelDataSize];
+		memcpy_s(m_PixelData, m_PixelDataSize, PixelData, m_PixelDataSize);
 	}
+	catch (const std::exception& e)
+	{
+		cout << e.what() << endl;
+		system("pause");
+	}
+}
+
+void BMPImporter::WriteBmpFromBuffer(const char* fileName, uint8_t* PixelData, int Width, int Height, int Bpp)
+{
+	m_TempBuffer = true;
+	m_Channels = Bpp / 8;
+
+	if (m_Channels < 3)
+	{
+		cout << "24Bit or 32 Bit Bmps only..." << endl;
+		system("pause");
+		return;
+	}
+
+	m_BMPHeader.BmpTag = 'MB';
+	m_BMPHeader.Offset = 54;
+	m_BMPHeader.Reserved = 0;
+	m_BMPHeader.Size = Width * Height * m_Channels + 54;
+
+	m_DibHeader.BitsPerPixel = Bpp;
+	m_DibHeader.Compression = BI_RGB;
+	m_DibHeader.DIBHeaderSize = 40;
+	m_DibHeader.ColorPlanes = 1;
+	m_DibHeader.Height = Height;
+	m_DibHeader.Width = Width;
+	m_DibHeader.ImageSize = Width * Height * m_Channels;
+	m_DibHeader.NumColorInPalette = 0;
+	m_DibHeader.ImportantColorsUsed = 0;
+	m_DibHeader.HorizontalResolution = 0;
+	m_DibHeader.VerticleResolution = 0;
+
+	m_PixelRowSize = Width * m_Channels + (4 - (Width * m_Channels) % 4) % 4;
+
+	//delete[] m_PixelData;
+	//m_PixelData = nullptr;
+
+	try
+	{
+		m_PixelDataSize = m_PixelRowSize * Height;
+		m_PixelData = PixelData;
+		Write(fileName);
+	}
+	catch (const std::exception& e)
+	{
+		cout << e.what() << endl;
+		system("pause");
+	}
+	m_PixelData = nullptr;
 }
 
 BGRA BMPImporter::BilinearInterp(float Rx, float Ry, int w, int h)
@@ -93,9 +145,9 @@ void BMPImporter::Resize(int Width, int Height)
 		if (Rx >= 4.0001f || Ry >= 4.0001f)
 			return;
 
-		int m_NewPixelRowSize = (((size_t)m_DibHeader.BitsPerPixel * abs(NewWidth) + 31) / 32) * 4;
+		int NewPixelRowSize = (((size_t)m_DibHeader.BitsPerPixel * abs(NewWidth) + 31) / 32) * 4;
 
-		vector<uint8_t> m_NewPixelData(m_NewPixelRowSize * abs(NewHeight), 0);
+		vector<uint8_t> NewPixelData(NewPixelRowSize * abs(NewHeight), 0);
 		for (size_t h = 0; h < OldHeight - 1; h++)
 		{
 			for (size_t w = 0; w < OldWidth - 1; w++)
@@ -106,14 +158,14 @@ void BMPImporter::Resize(int Width, int Height)
 				BGRA X0 = BilinearInterp(Rx, Ry, w, h);
 				X0.Scale(4.0f);
 
-				int PixelIndex = m_NewPixelRowSize * NewPixelY + NewPixelX * m_Channels;
+				int PixelIndex = NewPixelRowSize * NewPixelY + NewPixelX * m_Channels;
 				if (m_Channels >= 3)
 				{
-					m_NewPixelData[PixelIndex + 0] = X0.Blue;
-					m_NewPixelData[PixelIndex + 1] = X0.Green;
-					m_NewPixelData[PixelIndex + 2] = X0.Red;
+					NewPixelData[PixelIndex + 0] = X0.Blue;
+					NewPixelData[PixelIndex + 1] = X0.Green;
+					NewPixelData[PixelIndex + 2] = X0.Red;
 					if (m_Channels == 4)
-						m_NewPixelData[PixelIndex + 3] = X0.Alpha;
+						NewPixelData[PixelIndex + 3] = X0.Alpha;
 				}
 
 				continue;
@@ -139,14 +191,14 @@ void BMPImporter::Resize(int Width, int Height)
 						for (size_t d = 0; d < ceil(Rx); d++)
 						{
 							BGRA X2 = X0.Lerp(X1, float(d) / Cx);
-							int PixelIndex = m_NewPixelRowSize * NewPixelY + (NewPixelX + d) * m_Channels;
+							int PixelIndex = NewPixelRowSize * NewPixelY + (NewPixelX + d) * m_Channels;
 							if (m_Channels >= 3)
 							{
-								m_NewPixelData[PixelIndex + 0] = X2.Blue;
-								m_NewPixelData[PixelIndex + 1] = X2.Green;
-								m_NewPixelData[PixelIndex + 2] = X2.Red;
+								NewPixelData[PixelIndex + 0] = X2.Blue;
+								NewPixelData[PixelIndex + 1] = X2.Green;
+								NewPixelData[PixelIndex + 2] = X2.Red;
 								if (m_Channels == 4)
-									m_NewPixelData[PixelIndex + 3] = X2.Alpha;
+									NewPixelData[PixelIndex + 3] = X2.Alpha;
 							}
 						}
 					}
@@ -164,14 +216,14 @@ void BMPImporter::Resize(int Width, int Height)
 						for (size_t d = 0; d < Cy; d++)
 						{
 							BGRA Y2 = Y0.Lerp(Y1, float(d) / Cy);
-							int PixelIndex = m_NewPixelRowSize * (NewPixelY + d) + NewPixelX * m_Channels;
+							int PixelIndex = NewPixelRowSize * (NewPixelY + d) + NewPixelX * m_Channels;
 							if (m_Channels >= 3)
 							{
-								m_NewPixelData[PixelIndex + 0] = Y2.Blue;
-								m_NewPixelData[PixelIndex + 1] = Y2.Green;
-								m_NewPixelData[PixelIndex + 2] = Y2.Red;
+								NewPixelData[PixelIndex + 0] = Y2.Blue;
+								NewPixelData[PixelIndex + 1] = Y2.Green;
+								NewPixelData[PixelIndex + 2] = Y2.Red;
 								if (m_Channels == 4)
-									m_NewPixelData[PixelIndex + 3] = Y2.Alpha;
+									NewPixelData[PixelIndex + 3] = Y2.Alpha;
 							}
 						}
 					}
@@ -200,14 +252,14 @@ void BMPImporter::Resize(int Width, int Height)
 						
 							BGRA X3 = X2.Lerp(Y2, float(c0) / Cy);
 
-							int PixelIndex = m_NewPixelRowSize * (NewPixelY + c0) + (NewPixelX + c1) * m_Channels;
+							int PixelIndex = NewPixelRowSize * (NewPixelY + c0) + (NewPixelX + c1) * m_Channels;
 							if (m_Channels >= 3)
 							{
-								m_NewPixelData[PixelIndex + 0] = X3.Blue;
-								m_NewPixelData[PixelIndex + 1] = X3.Green;
-								m_NewPixelData[PixelIndex + 2] = X3.Red;
+								NewPixelData[PixelIndex + 0] = X3.Blue;
+								NewPixelData[PixelIndex + 1] = X3.Green;
+								NewPixelData[PixelIndex + 2] = X3.Red;
 								if (m_Channels == 4)
-									m_NewPixelData[PixelIndex + 3] = X3.Alpha;
+									NewPixelData[PixelIndex + 3] = X3.Alpha;
 							}
 						}
 					}
@@ -217,14 +269,14 @@ void BMPImporter::Resize(int Width, int Height)
 					BGRA X0 = BilinearInterp(Rx, Ry, w, h);
 					X0.Scale(4.0f);
 
-					int PixelIndex = m_NewPixelRowSize * NewPixelY + NewPixelX * m_Channels;
+					int PixelIndex = NewPixelRowSize * NewPixelY + NewPixelX * m_Channels;
 					if (m_Channels >= 3)
 					{
-						m_NewPixelData[PixelIndex + 0] = X0.Blue;
-						m_NewPixelData[PixelIndex + 1] = X0.Green;
-						m_NewPixelData[PixelIndex + 2] = X0.Red;
+						NewPixelData[PixelIndex + 0] = X0.Blue;
+						NewPixelData[PixelIndex + 1] = X0.Green;
+						NewPixelData[PixelIndex + 2] = X0.Red;
 						if (m_Channels == 4)
-							m_NewPixelData[PixelIndex + 3] = X0.Alpha;
+							NewPixelData[PixelIndex + 3] = X0.Alpha;
 					}
 				}
 
@@ -237,8 +289,19 @@ void BMPImporter::Resize(int Width, int Height)
 		m_BMPHeader.Size = m_DibHeader.ImageSize + 54;
 		m_PixelRowSize = (((size_t)m_DibHeader.BitsPerPixel * abs(m_DibHeader.Width) + 31) / 32) * 4;
 
-		m_PixelData.clear();
-		m_PixelData = m_NewPixelData;
+		try
+		{
+			delete[] m_PixelData;
+
+			m_PixelDataSize = NewPixelData.size();
+			m_PixelData = new uint8_t[m_PixelDataSize];
+			memcpy_s(m_PixelData, m_PixelDataSize, NewPixelData.data(), m_PixelDataSize);
+		}
+		catch (const std::exception& e)
+		{
+			cout << e.what() << endl;
+			system("pause");
+		}
 	}
 	else
 	{
@@ -260,17 +323,17 @@ bool BMPImporter::ReadBMP(const char* fileName)
 		return false;
 	}
 
-	infile.read(reinterpret_cast<char*>(&m_BMPHeader.Header), 2);
+	infile.read(reinterpret_cast<char*>(&m_BMPHeader.BmpTag), 2);
 	infile.read(reinterpret_cast<char*>(&m_BMPHeader.Size), 3 * sizeof(int));
 
-	if (m_BMPHeader.Header[0] != 'B' || m_BMPHeader.Header[1] != 'M')
+	if (m_BMPHeader.BmpTag != ('MB'))
 	{
-		cout << "Incorrect Header" << m_BMPHeader.Header[0] << m_BMPHeader.Header[1] << endl;
+		cout << "Incorrect Header" << m_BMPHeader.BmpTag << endl;
 		return false;
 	}
 
 	cout << "Reading BitmapFileHeader" << endl;
-	cout << "Header\t\t: " << m_BMPHeader.Header[0] << m_BMPHeader.Header[1] << endl;
+	cout << "Header\t\t: " << m_BMPHeader.BmpTag << endl;
 	cout << "Size\t\t: " << m_BMPHeader.Size << endl;
 	cout << "Reserved\t: " << m_BMPHeader.Reserved << endl;
 	cout << "Offset\t\t: " << m_BMPHeader.Offset << endl;
@@ -314,8 +377,19 @@ bool BMPImporter::ReadBMP(const char* fileName)
 
 	m_PixelRowSize = (((size_t)m_DibHeader.BitsPerPixel * abs(m_DibHeader.Width) + 31) / 32) * 4;
 
-	m_PixelData.resize(m_PixelRowSize * abs(m_DibHeader.Height));
-	infile.read(reinterpret_cast<char*>(m_PixelData.data()), m_PixelData.size());
+	m_PixelDataSize = m_PixelRowSize * abs(m_DibHeader.Height);
+
+	try
+	{
+		m_PixelData = new uint8_t[m_PixelDataSize];
+		infile.read(reinterpret_cast<char*>(m_PixelData), m_PixelDataSize);
+	}
+	catch (const std::exception& e)
+	{
+		cout << e.what() << endl;
+		system("pause");
+	}
+
 	infile.close();
 
 	return true;
@@ -323,21 +397,168 @@ bool BMPImporter::ReadBMP(const char* fileName)
 
 void BMPImporter::Write(const char* fileName)
 {
-	ofstream outFile(fileName, ios_base::binary);
-	outFile.write(m_BMPHeader.Header, 2);
-	outFile.write(reinterpret_cast<char*>(&m_BMPHeader.Size), 3 * sizeof(int));
-	outFile.write(reinterpret_cast<char*>(&m_DibHeader), sizeof(DIBHeader));
-	if (m_DibHeader.BitsPerPixel == 32)
+	//FILE* outFile = nullptr;
+	//errno_t err = fopen_s(&outFile, fileName, "wb");
+	//if (!err)
+	//{
+	//	fwrite(&m_BMPHeader, sizeof(BitmapFileHeader), 1, outFile);
+	//	fwrite(&m_DibHeader, sizeof(DIBHeader), 1, outFile);
+	//	if (m_DibHeader.BitsPerPixel == 32)
+	//		fwrite(&m_BGRAHeader, sizeof(BMPColorHeader32), 1, outFile);
+	//	fwrite(m_PixelData, m_PixelDataSize, 1, outFile);
+	//}
+	//fclose(outFile);
+	
+	ofstream outFile(fileName, ios_base::binary|ios_base::out);
+	
+	if (outFile.good())
 	{
-		outFile.write(reinterpret_cast<char*>(&m_BGRAHeader), sizeof(BMPColorHeader32));
+		outFile.flush();
+		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.BmpTag), sizeof(unsigned short));
+		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.Size), 3 * sizeof(unsigned int));
+		outFile.write(reinterpret_cast<char*>(&m_DibHeader), sizeof(DIBHeader));
+		if (m_DibHeader.BitsPerPixel == 32)
+			outFile.write(reinterpret_cast<char*>(&m_BGRAHeader), sizeof(BMPColorHeader32));
+		outFile.write(reinterpret_cast<char*>(m_PixelData), m_PixelDataSize);
 	}
-	outFile.write(reinterpret_cast<char*>(m_PixelData.data()), m_PixelData.size());
+	else
+	{
+		cout << "Unable To open File to Write..." << endl;
+	}
+	
 	outFile.close();
+}
+
+bool BMPImporter::WriteBmp8Bit(const char* FileName)
+{
+	int OldBpp = m_DibHeader.BitsPerPixel;
+
+	m_DibHeader.NumColorInPalette = 0;
+	m_DibHeader.ImageSize = m_DibHeader.Width * m_DibHeader.Height;
+	m_DibHeader.ColorPlanes = 1;
+	m_DibHeader.BitsPerPixel = 8;
+	m_DibHeader.ImportantColorsUsed = 1 << m_DibHeader.BitsPerPixel;
+
+	uint8_t Zero = 0;
+	int32_t Padding = (4 - (m_DibHeader.Width) % 4) % 4;
+
+	m_BMPHeader.BmpTag = 'MB';
+	m_BMPHeader.Size = (m_DibHeader.Width + Padding) * m_DibHeader.Height + m_DibHeader.DIBHeaderSize + sizeof(BITMAPFILEHEADER);
+	m_BMPHeader.Reserved = 0;
+	m_BMPHeader.Offset = m_DibHeader.DIBHeaderSize + sizeof(BITMAPFILEHEADER) + m_DibHeader.ImportantColorsUsed * sizeof(RGBQUAD);
+
+	ofstream outFile(FileName, ios::binary);
+	if (outFile.good())
+	{
+		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.BmpTag), sizeof(unsigned short));
+		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.Size), 3 * sizeof(unsigned int));
+		outFile.write(reinterpret_cast<char*>(&m_DibHeader), sizeof(DIBHeader));
+
+		//Indices for Gray Level
+		for (int32_t p = 0; p < m_DibHeader.ImportantColorsUsed; p++)
+		{
+			outFile.write(reinterpret_cast<char*>(&p), 1);
+			outFile.write(reinterpret_cast<char*>(&p), 1);
+			outFile.write(reinterpret_cast<char*>(&p), 1);
+			outFile.write(reinterpret_cast<char*>(&Zero), 1);
+		}
+
+		if (OldBpp >= 24)
+		{
+			int k1 = 0; 
+			int k2 = 0; 
+			for (int32_t h = 0; h < m_DibHeader.Height; h++)
+			{
+				for (int32_t w = 0; w < m_DibHeader.Width; w++)
+				{
+					m_PixelData[k1] = (m_PixelData[k2 + 0] + m_PixelData[k2 + 1] + m_PixelData[k2 + 2]) / 3;
+					
+					k2 += 3;
+					if (OldBpp == 32)
+					{
+						m_PixelData[k1] = (m_PixelData[k1] * 3 + m_PixelData[k2 + 3]) / 4;
+						k2++;
+					}
+
+					outFile.write(reinterpret_cast<char*>(&m_PixelData[k1++]), 1);
+				}
+
+				for (int32_t p = 0; p < Padding; p++)
+					outFile.write(reinterpret_cast<char*>(&Zero), 1);
+			}
+
+			//delete &m_PixelData[k1]; //Trim Array without new allocation?
+		}
+	}
+	
+	outFile.close();
+
+	return true;
+}
+
+bool BMPImporter::WriteBmp8Bit(uint8_t* Buffer, const char* FileName, int Width, int Height)
+{
+	m_DibHeader.DIBHeaderSize = sizeof(BITMAPINFOHEADER);
+	m_DibHeader.BitsPerPixel = 8;
+	m_DibHeader.Width = Width;
+	m_DibHeader.Height = Height;
+	m_DibHeader.Compression = BI_RGB;
+	m_DibHeader.NumColorInPalette = 0;
+	m_DibHeader.ImageSize = m_DibHeader.Width * m_DibHeader.Height;
+	m_DibHeader.ColorPlanes = 1;
+	m_DibHeader.ImportantColorsUsed = 1 << m_DibHeader.BitsPerPixel;
+
+	uint8_t Zero = 0;
+	int32_t Padding = (4 - (m_DibHeader.Width) % 4) % 4;
+	
+	m_BMPHeader.BmpTag = 'MB';
+	m_BMPHeader.Size = (m_DibHeader.Width + Padding) * m_DibHeader.Height + m_DibHeader.DIBHeaderSize + sizeof(BITMAPFILEHEADER);
+	m_BMPHeader.Reserved = 0;
+	m_BMPHeader.Offset = m_DibHeader.DIBHeaderSize + sizeof(BITMAPFILEHEADER) + m_DibHeader.ImportantColorsUsed * sizeof(RGBQUAD);
+
+	ofstream outFile(FileName, ios::binary);
+	if (outFile.good())
+	{
+		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.BmpTag), sizeof(unsigned short));
+		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.Size), 3 * sizeof(unsigned int));
+		outFile.write(reinterpret_cast<char*>(&m_DibHeader), sizeof(DIBHeader));
+
+		//Indices for Gray Level
+		for (int32_t p = 0; p < m_DibHeader.ImportantColorsUsed; p++)
+		{
+			outFile.write(reinterpret_cast<char*>(&p), 1);
+			outFile.write(reinterpret_cast<char*>(&p), 1);
+			outFile.write(reinterpret_cast<char*>(&p), 1);
+			outFile.write(reinterpret_cast<char*>(&Zero), 1);
+		}
+
+		const uint8_t* pData = Buffer;
+		for (int32_t h = 0; h < m_DibHeader.Height; h++)
+		{
+			for (int32_t w = 0; w < m_DibHeader.Width; w++)
+			{
+				uint8_t gray = *pData++ ? 255 : 0;
+				outFile.write(reinterpret_cast<char*>(&gray), 1);
+			}
+
+			for (int32_t p = 0; p < Padding; p++)
+				outFile.write(reinterpret_cast<char*>(&Zero), 1);
+
+			pData += Padding;
+		}
+	}
+	outFile.close();
+
+	return true;
 }
 
 BMPImporter::~BMPImporter()
 {
-
+	if (!m_TempBuffer)
+	{
+		delete[] m_PixelData;
+		m_PixelData = nullptr;
+	}
 }
 
 int BMPImporter::GetWidth()
@@ -381,7 +602,39 @@ BGRA BMPImporter::GetPixel( int x, int y )
 
 uint8_t* BMPImporter::GetPixelData()
 {
-	return m_PixelData.data();
+	return m_PixelData;
+}
+
+vector<uint8_t> BMPImporter::GetPixelData32()
+{
+	vector<uint8_t> PixelData32(m_DibHeader.Width * m_DibHeader.Height*4, 0);
+	
+	int k1 = 0;
+	int k2 = 0;
+	for (size_t h = 0; h < m_DibHeader.Height; h++)
+	{
+		for (size_t w = 0; w < m_DibHeader.Width; w++)
+		{
+			PixelData32[k2 + 0] = m_PixelData[k1 + 0];
+			PixelData32[k2 + 1] = m_PixelData[k1 + 1];
+			PixelData32[k2 + 2] = m_PixelData[k1 + 2];
+
+			if (m_Channels == 4)
+			{
+				PixelData32[k2 + 3] = m_PixelData[k1 + 3];
+				k1 += 4;
+			}
+			else if (m_Channels == 3)
+			{
+				PixelData32[k2 + 3] = 0xFF;
+				k1 += 3;
+			}
+				
+			k2 += 4;
+		}
+	}
+
+	return PixelData32;
 }
 
 void BMPImporter::SetPixel(int x, int y, BGRA bgr)

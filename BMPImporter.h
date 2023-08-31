@@ -7,12 +7,11 @@
 #include <Windows.h>
 
 using namespace std;
-
-#pragma pack( push, 1 )
+#pragma pack( push, 2 )
 
 struct BitmapFileHeader
 {
-	char			Header[2];			//header field - BM
+	unsigned short	BmpTag;				//header field - BM
 	unsigned int	Size;				//The size of the BMP file in bytes
 	unsigned int	Reserved;			//Reserved
 	unsigned int	Offset;				//starting address, of the byte where the bitmap image data (pixel array) can be found
@@ -31,7 +30,7 @@ struct DIBHeader
 	int					VerticleResolution;		//vertical resolution of the image. (pixel per metre, signed integer)
 	unsigned int		NumColorInPalette;		//number of colors in the color palette, or 0 to default to 2 pow n
 	unsigned int		ImportantColorsUsed;	//number of important colors used, or 0 when every color is important; generally ignored
-}; 
+};
 
 struct BGRA
 {
@@ -49,7 +48,7 @@ struct BGRA
 		Result.Alpha = Alpha + (B.Alpha - Alpha) * t;
 		return Result;
 	}
-	
+
 	void Scale(float t)
 	{
 		Blue = __min(Blue * t, 0xFF);
@@ -59,7 +58,7 @@ struct BGRA
 	}
 };
 
-struct BMPColorHeader32 
+struct BMPColorHeader32
 {
 	uint32_t RedMask;			// Bit mask for the red channel
 	uint32_t GreenMask;			// Bit mask for the green channel
@@ -67,7 +66,7 @@ struct BMPColorHeader32
 	uint32_t AlphaMask;			// Bit mask for the alpha channel
 	uint32_t ColorSpaceType;	// Default "sRGB" (0x73524742)
 	uint32_t Unused[16];		// Unused data for sRGB color space
-	
+
 	BMPColorHeader32() :
 		RedMask(0x00ff0000),
 		GreenMask(0x0000ff00),
@@ -75,31 +74,41 @@ struct BMPColorHeader32
 		AlphaMask(0xff000000),
 		ColorSpaceType(0x73524742)
 	{
-		memset(Unused, 0, 16*sizeof(uint32_t));
+		memset(Unused, 0, 16 * sizeof(uint32_t));
 	}
 };
 
 #pragma pack( pop )
 
+namespace
+{
+	BGRA Gray75 = { 0xC0, 0xC0, 0xC0 };
+	BGRA Gray50 = { 0x80, 0x80, 0x80 };
+	BGRA Blue = { 0xFF, 0x00, 0x00 };
+	BGRA White = { 0xFF, 0xFF, 0xFF };
+
+}
+
 class BMPImporter
 {
-
 public:
-	BMPImporter(uint8_t* PixelData, int Width, int Height, int Bpp);
-	BMPImporter( const char* fileName );
+	BMPImporter();
+	BMPImporter(const char* fileName);
 	~BMPImporter();
 
-	void Write(const char* fileName);
-	
+	void			LoadBuffer(uint8_t* PixelData, int Width = 256, int Height = 256, int Bpp = 24);
+	void			WriteBmpFromBuffer(const char* fileName, uint8_t* PixelData, int Width = 256, int Height = 256, int Bpp = 24);
+	void			Write(const char* fileName);
+	bool			WriteBmp8Bit(const char* FileName);
+	bool			WriteBmp8Bit(uint8_t* Buffer, const char* FileName, int Width, int Height);
 	void			Resize(int Width, int Height);
 	int				GetWidth();
 	int				GetHeight();
 	int				GetBitPerPixel();
 	BGRA			GetPixel(int x, int y);
 	void			SetPixel(int x, int y, BGRA rgb);
-
 	uint8_t*		GetPixelData();
-
+	vector<uint8_t>	GetPixelData32();
 	DIBHeader*		GetBitmapHeader();
 
 private:
@@ -111,8 +120,9 @@ private:
 	BMPColorHeader32	m_BGRAHeader;
 	size_t				m_PixelRowSize;
 	size_t				m_Channels;
+	size_t				m_PixelDataSize = 0;
+	bool				m_TempBuffer;
+	uint8_t*			m_PixelData;
 
-	vector<uint8_t>		m_PixelData;
-	
 };
 
