@@ -68,10 +68,10 @@ struct BMPColorHeader32
 	uint32_t Unused[16];		// Unused data for sRGB color space
 
 	BMPColorHeader32() :
-		RedMask(0x00ff0000),
-		GreenMask(0x0000ff00),
-		BlueMask(0x000000ff),
-		AlphaMask(0xff000000),
+		RedMask(0x00FF0000),
+		GreenMask(0x0000FF00),
+		BlueMask(0x000000FF),
+		AlphaMask(0xFF000000),
 		ColorSpaceType(0x73524742)
 	{
 		memset(Unused, 0, 16 * sizeof(uint32_t));
