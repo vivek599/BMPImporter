@@ -3,7 +3,7 @@
 BMPImporter::BMPImporter()
 {
 	m_BMPHeader = {};
-	m_DibHeader = {};
+	m_DibHeaderV5 = {};
 	m_BGRAHeader = {};
 	m_PixelRowSize = 0;
 	m_Channels = 0;
@@ -35,17 +35,17 @@ void BMPImporter::LoadBuffer(uint8_t* PixelData, int Width, int Height, int Bpp)
 	m_BMPHeader.Reserved = 0;
 	m_BMPHeader.Size = Width * Height * m_Channels + 54;
 	
-	m_DibHeader.BitsPerPixel = Bpp;
-	m_DibHeader.Compression = BI_RGB;
-	m_DibHeader.DIBHeaderSize = 40;
-	m_DibHeader.ColorPlanes = 1;
-	m_DibHeader.Height = Height;
-	m_DibHeader.Width = Width;
-	m_DibHeader.ImageSize = Width * Height * m_Channels;
-	m_DibHeader.NumColorInPalette = 0;
-	m_DibHeader.ImportantColorsUsed = 0;
-	m_DibHeader.HorizontalResolution = 0;
-	m_DibHeader.VerticleResolution = 0;
+	m_DibHeaderV5.BitsperPixel = Bpp;
+	m_DibHeaderV5.Compression = BI_RGB;
+	m_DibHeaderV5.DIBHeaderSize = 40;
+	m_DibHeaderV5.Planes = 1;
+	m_DibHeaderV5.Height = Height;
+	m_DibHeaderV5.Width = Width;
+	m_DibHeaderV5.ImageSize = Width * Height * m_Channels;
+	m_DibHeaderV5.ColorsinColorTable = 0;
+	m_DibHeaderV5.ImportantColorCount = 0;
+	m_DibHeaderV5.XPixelsPerMeter = 0;
+	m_DibHeaderV5.YPixelsPerMeter = 0;
 
 	m_PixelRowSize = Width * m_Channels + (4 - (Width * m_Channels) % 4) % 4;
 	
@@ -82,17 +82,17 @@ void BMPImporter::WriteBmpFromBuffer(const char* fileName, uint8_t* PixelData, i
 	m_BMPHeader.Reserved = 0;
 	m_BMPHeader.Size = Width * Height * m_Channels + 54;
 
-	m_DibHeader.BitsPerPixel = Bpp;
-	m_DibHeader.Compression = BI_RGB;
-	m_DibHeader.DIBHeaderSize = 40;
-	m_DibHeader.ColorPlanes = 1;
-	m_DibHeader.Height = Height;
-	m_DibHeader.Width = Width;
-	m_DibHeader.ImageSize = Width * Height * m_Channels;
-	m_DibHeader.NumColorInPalette = 0;
-	m_DibHeader.ImportantColorsUsed = 0;
-	m_DibHeader.HorizontalResolution = 0;
-	m_DibHeader.VerticleResolution = 0;
+	m_DibHeaderV5.BitsperPixel = Bpp;
+	m_DibHeaderV5.Compression = BI_RGB;
+	m_DibHeaderV5.DIBHeaderSize = 40;
+	m_DibHeaderV5.Planes = 1;
+	m_DibHeaderV5.Height = Height;
+	m_DibHeaderV5.Width = Width;
+	m_DibHeaderV5.ImageSize = Width * Height * m_Channels;
+	m_DibHeaderV5.ColorsinColorTable = 0;
+	m_DibHeaderV5.ImportantColorCount = 0;
+	m_DibHeaderV5.XPixelsPerMeter = 0;
+	m_DibHeaderV5.YPixelsPerMeter = 0;
 
 	m_PixelRowSize = Width * m_Channels + (4 - (Width * m_Channels) % 4) % 4;
 
@@ -133,8 +133,8 @@ void BMPImporter::Resize(int Width, int Height)
 {
 	if (Width && Height)
 	{
-		int OldWidth = m_DibHeader.Width;
-		int OldHeight = m_DibHeader.Height;
+		int OldWidth = m_DibHeaderV5.Width;
+		int OldHeight = m_DibHeaderV5.Height;
 
 		int NewWidth = Width;
 		int NewHeight = Height;
@@ -145,7 +145,7 @@ void BMPImporter::Resize(int Width, int Height)
 		if (Rx >= 4.0001f || Ry >= 4.0001f)
 			return;
 
-		int NewPixelRowSize = (((size_t)m_DibHeader.BitsPerPixel * abs(NewWidth) + 31) / 32) * 4;
+		int NewPixelRowSize = (((size_t)m_DibHeaderV5.BitsperPixel * abs(NewWidth) + 31) / 32) * 4;
 
 		vector<uint8_t> NewPixelData(NewPixelRowSize * abs(NewHeight), 0);
 		for (size_t h = 0; h < OldHeight - 1; h++)
@@ -283,11 +283,11 @@ void BMPImporter::Resize(int Width, int Height)
 			}
 		}
 
-		m_DibHeader.Width = NewWidth;
-		m_DibHeader.Height = NewHeight;
-		m_DibHeader.ImageSize = NewWidth * NewHeight * m_Channels;
-		m_BMPHeader.Size = m_DibHeader.ImageSize + 54;
-		m_PixelRowSize = (((size_t)m_DibHeader.BitsPerPixel * abs(m_DibHeader.Width) + 31) / 32) * 4;
+		m_DibHeaderV5.Width = NewWidth;
+		m_DibHeaderV5.Height = NewHeight;
+		m_DibHeaderV5.ImageSize = NewWidth * NewHeight * m_Channels;
+		m_BMPHeader.Size = m_DibHeaderV5.ImageSize + 54;
+		m_PixelRowSize = (((size_t)m_DibHeaderV5.BitsperPixel * abs(m_DibHeaderV5.Width) + 31) / 32) * 4;
 
 		try
 		{
@@ -339,32 +339,54 @@ bool BMPImporter::ReadBMP(const char* fileName)
 	cout << "Offset\t\t: " << m_BMPHeader.Offset << endl;
 
 	cout << "Reading DIBHeader" << endl;
-	infile.read(reinterpret_cast<char*>(&m_DibHeader), sizeof(DIBHeader));
 
-	cout << "DIBHeaderSize--------: " << m_DibHeader.DIBHeaderSize << endl;
-	cout << "Width----------------: " << m_DibHeader.Width << endl;
-	cout << "Height---------------: " << m_DibHeader.Height << endl;
-	cout << "ColorPlanes----------: " << m_DibHeader.ColorPlanes << endl;
-	cout << "BitsPerPixel---------: " << m_DibHeader.BitsPerPixel << endl;
-	cout << "Compression----------: " << m_DibHeader.Compression << endl;
-	cout << "ImageSize------------: " << m_DibHeader.ImageSize << endl;
-	cout << "HorizontalResolution-: " << m_DibHeader.HorizontalResolution << endl;
-	cout << "VerticleResolution---: " << m_DibHeader.VerticleResolution << endl;
-	cout << "NumColorInPalette----: " << m_DibHeader.NumColorInPalette << endl;
-	cout << "ImportantColorsUsed--: " << m_DibHeader.ImportantColorsUsed << endl;
+	infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.DIBHeaderSize), sizeof(unsigned int));
+	infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.Width), sizeof(int));
+	infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.Height), sizeof(int));
+	infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.Planes), sizeof(short));
+	infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.BitsperPixel), sizeof(short));
 
-	if (m_DibHeader.BitsPerPixel != 24 && m_DibHeader.BitsPerPixel != 32)
+	if (m_DibHeaderV5.BitsperPixel <= 32)
 	{
-		cout << "Incorrect BitsPerPixel" << m_DibHeader.BitsPerPixel << endl;
-		return false;
+		infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.Compression), sizeof(unsigned int));
+		infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.ImageSize), sizeof(unsigned int));
+		infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.XPixelsPerMeter), sizeof(int));
+		infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.YPixelsPerMeter), sizeof(int));
+		infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.ColorsinColorTable), sizeof(unsigned int));
+		infile.read(reinterpret_cast<char*>(&m_DibHeaderV5.ImportantColorCount), sizeof(unsigned int));
+
+		if (m_DibHeaderV5.BitsperPixel == 32)
+		{
+			infile.read(reinterpret_cast<char*>(&m_BGRAHeader), sizeof(BMPColorHeader32));
+		}
+
+		if (m_DibHeaderV5.BitsperPixel <= 8)
+		{
+			if (m_DibHeaderV5.ColorsinColorTable == 0)
+			{
+				m_DibHeaderV5.ColorsinColorTable = 1 << 8;
+			}
+			
+			if (m_DibHeaderV5.DIBHeaderSize == 40)
+			{
+				infile.read(reinterpret_cast<char*>(m_ColorTable), sizeof(char) * m_DibHeaderV5.ColorsinColorTable);
+			}
+		}
 	}
 
-	if (m_DibHeader.BitsPerPixel == 32)
-	{
-		infile.read(reinterpret_cast<char*>(&m_BGRAHeader), sizeof(BMPColorHeader32));
-	}
-	
-	m_Channels = m_DibHeader.BitsPerPixel / 8;
+	cout << "DIBHeaderSize--------: " << m_DibHeaderV5.DIBHeaderSize << endl;
+	cout << "Width----------------: " << m_DibHeaderV5.Width << endl;
+	cout << "Height---------------: " << m_DibHeaderV5.Height << endl;
+	cout << "ColorPlanes----------: " << m_DibHeaderV5.Planes << endl;
+	cout << "BitsPerPixel---------: " << m_DibHeaderV5.BitsperPixel << endl;
+	cout << "Compression----------: " << m_DibHeaderV5.Compression << endl;
+	cout << "ImageSize------------: " << m_DibHeaderV5.ImageSize << endl;
+	cout << "HorizontalResolution-: " << m_DibHeaderV5.XPixelsPerMeter << endl;
+	cout << "VerticleResolution---: " << m_DibHeaderV5.YPixelsPerMeter << endl;
+	cout << "NumColorInPalette----: " << m_DibHeaderV5.ColorsinColorTable << endl;
+	cout << "ImportantColorsUsed--: " << m_DibHeaderV5.ImportantColorCount << endl;
+
+	m_Channels = m_DibHeaderV5.BitsperPixel / 8;
 
 	cout << "RedMask---------: " << m_BGRAHeader.RedMask << endl;
 	cout << "GreenMask-------: " << m_BGRAHeader.GreenMask << endl;
@@ -375,14 +397,26 @@ bool BMPImporter::ReadBMP(const char* fileName)
 
 	infile.seekg(m_BMPHeader.Offset, ios_base::beg);
 
-	m_PixelRowSize = (((size_t)m_DibHeader.BitsPerPixel * abs(m_DibHeader.Width) + 31) / 32) * 4;
+	m_PixelRowSize = (((size_t)m_DibHeaderV5.BitsperPixel * abs(m_DibHeaderV5.Width) + 31) / 32) * 4;
 
-	m_PixelDataSize = m_PixelRowSize * abs(m_DibHeader.Height);
+	m_PixelDataSize = m_PixelRowSize * abs(m_DibHeaderV5.Height);
 
 	try
 	{
 		m_PixelData = new uint8_t[m_PixelDataSize];
 		infile.read(reinterpret_cast<char*>(m_PixelData), m_PixelDataSize);
+
+		if (m_DibHeaderV5.BitsperPixel == 8)
+		{
+			for (int h = 0; h < m_DibHeaderV5.Height; h++)
+			{
+				for (int w = 0; w < m_DibHeaderV5.Width; w++)
+				{
+					int Index = h * m_DibHeaderV5.Width + w;
+					//m_PixelData[Index] = m_ColorTable[m_PixelData[Index]];
+				}
+			}
+		}
 	}
 	catch (const std::exception& e)
 	{
@@ -402,8 +436,8 @@ void BMPImporter::Write(const char* fileName)
 	//if (!err)
 	//{
 	//	fwrite(&m_BMPHeader, sizeof(BitmapFileHeader), 1, outFile);
-	//	fwrite(&m_DibHeader, sizeof(DIBHeader), 1, outFile);
-	//	if (m_DibHeader.BitsPerPixel == 32)
+	//	fwrite(&m_DibHeaderV5, sizeof(DIBHeader), 1, outFile);
+	//	if (m_DibHeaderV5.BitsPerPixel == 32)
 	//		fwrite(&m_BGRAHeader, sizeof(BMPColorHeader32), 1, outFile);
 	//	fwrite(m_PixelData, m_PixelDataSize, 1, outFile);
 	//}
@@ -416,8 +450,8 @@ void BMPImporter::Write(const char* fileName)
 		outFile.flush();
 		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.BmpTag), sizeof(unsigned short));
 		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.Size), 3 * sizeof(unsigned int));
-		outFile.write(reinterpret_cast<char*>(&m_DibHeader), sizeof(DIBHeader));
-		if (m_DibHeader.BitsPerPixel == 32)
+		outFile.write(reinterpret_cast<char*>(&m_DibHeaderV5), sizeof(DIBHeader));
+		if (m_DibHeaderV5.BitsperPixel == 32)
 			outFile.write(reinterpret_cast<char*>(&m_BGRAHeader), sizeof(BMPColorHeader32));
 		outFile.write(reinterpret_cast<char*>(m_PixelData), m_PixelDataSize);
 	}
@@ -431,31 +465,31 @@ void BMPImporter::Write(const char* fileName)
 
 bool BMPImporter::WriteBmp8Bit(const char* FileName)
 {
-	int OldBpp = m_DibHeader.BitsPerPixel;
+	int OldBpp = m_DibHeaderV5.BitsperPixel;
 
-	m_DibHeader.NumColorInPalette = 0;
-	m_DibHeader.ImageSize = m_DibHeader.Width * m_DibHeader.Height;
-	m_DibHeader.ColorPlanes = 1;
-	m_DibHeader.BitsPerPixel = 8;
-	m_DibHeader.ImportantColorsUsed = 1 << m_DibHeader.BitsPerPixel;
+	m_DibHeaderV5.ColorsinColorTable = 0;
+	m_DibHeaderV5.ImageSize = m_DibHeaderV5.Width * m_DibHeaderV5.Height;
+	m_DibHeaderV5.Planes = 1;
+	m_DibHeaderV5.BitsperPixel = 8;
+	m_DibHeaderV5.ImportantColorCount = 1 << m_DibHeaderV5.BitsperPixel;
 
 	uint8_t Zero = 0;
-	int32_t Padding = (4 - (m_DibHeader.Width) % 4) % 4;
+	int32_t Padding = (4 - (m_DibHeaderV5.Width) % 4) % 4;
 
 	m_BMPHeader.BmpTag = 'MB';
-	m_BMPHeader.Size = (m_DibHeader.Width + Padding) * m_DibHeader.Height + m_DibHeader.DIBHeaderSize + sizeof(BITMAPFILEHEADER);
+	m_BMPHeader.Size = (m_DibHeaderV5.Width + Padding) * m_DibHeaderV5.Height + m_DibHeaderV5.DIBHeaderSize + sizeof(BITMAPFILEHEADER);
 	m_BMPHeader.Reserved = 0;
-	m_BMPHeader.Offset = m_DibHeader.DIBHeaderSize + sizeof(BITMAPFILEHEADER) + m_DibHeader.ImportantColorsUsed * sizeof(RGBQUAD);
+	m_BMPHeader.Offset = m_DibHeaderV5.DIBHeaderSize + sizeof(BITMAPFILEHEADER) + m_DibHeaderV5.ImportantColorCount * sizeof(RGBQUAD);
 
 	ofstream outFile(FileName, ios::binary);
 	if (outFile.good())
 	{
 		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.BmpTag), sizeof(unsigned short));
 		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.Size), 3 * sizeof(unsigned int));
-		outFile.write(reinterpret_cast<char*>(&m_DibHeader), sizeof(DIBHeader));
+		outFile.write(reinterpret_cast<char*>(&m_DibHeaderV5), sizeof(DIBHeader));
 
 		//Indices for Gray Level
-		for (int32_t p = 0; p < m_DibHeader.ImportantColorsUsed; p++)
+		for (int32_t p = 0; p < m_DibHeaderV5.ImportantColorCount; p++)
 		{
 			outFile.write(reinterpret_cast<char*>(&p), 1);
 			outFile.write(reinterpret_cast<char*>(&p), 1);
@@ -467,9 +501,9 @@ bool BMPImporter::WriteBmp8Bit(const char* FileName)
 		{
 			int k1 = 0; 
 			int k2 = 0; 
-			for (int32_t h = 0; h < m_DibHeader.Height; h++)
+			for (int32_t h = 0; h < m_DibHeaderV5.Height; h++)
 			{
-				for (int32_t w = 0; w < m_DibHeader.Width; w++)
+				for (int32_t w = 0; w < m_DibHeaderV5.Width; w++)
 				{
 					m_PixelData[k1] = (m_PixelData[k2 + 0] + m_PixelData[k2 + 1] + m_PixelData[k2 + 2]) / 3;
 					
@@ -498,33 +532,33 @@ bool BMPImporter::WriteBmp8Bit(const char* FileName)
 
 bool BMPImporter::WriteBmp8Bit(uint8_t* Buffer, const char* FileName, int Width, int Height)
 {
-	m_DibHeader.DIBHeaderSize = sizeof(BITMAPINFOHEADER);
-	m_DibHeader.BitsPerPixel = 8;
-	m_DibHeader.Width = Width;
-	m_DibHeader.Height = Height;
-	m_DibHeader.Compression = BI_RGB;
-	m_DibHeader.NumColorInPalette = 0;
-	m_DibHeader.ImageSize = m_DibHeader.Width * m_DibHeader.Height;
-	m_DibHeader.ColorPlanes = 1;
-	m_DibHeader.ImportantColorsUsed = 1 << m_DibHeader.BitsPerPixel;
+	m_DibHeaderV5.DIBHeaderSize = sizeof(BITMAPINFOHEADER);
+	m_DibHeaderV5.BitsperPixel = 8;
+	m_DibHeaderV5.Width = Width;
+	m_DibHeaderV5.Height = Height;
+	m_DibHeaderV5.Compression = BI_RGB;
+	m_DibHeaderV5.ColorsinColorTable = 0;
+	m_DibHeaderV5.ImageSize = m_DibHeaderV5.Width * m_DibHeaderV5.Height;
+	m_DibHeaderV5.Planes = 1;
+	m_DibHeaderV5.ImportantColorCount = 1 << m_DibHeaderV5.BitsperPixel;
 
 	uint8_t Zero = 0;
-	int32_t Padding = (4 - (m_DibHeader.Width) % 4) % 4;
+	int32_t Padding = (4 - (m_DibHeaderV5.Width) % 4) % 4;
 	
 	m_BMPHeader.BmpTag = 'MB';
-	m_BMPHeader.Size = (m_DibHeader.Width + Padding) * m_DibHeader.Height + m_DibHeader.DIBHeaderSize + sizeof(BITMAPFILEHEADER);
+	m_BMPHeader.Size = (m_DibHeaderV5.Width + Padding) * m_DibHeaderV5.Height + m_DibHeaderV5.DIBHeaderSize + sizeof(BITMAPFILEHEADER);
 	m_BMPHeader.Reserved = 0;
-	m_BMPHeader.Offset = m_DibHeader.DIBHeaderSize + sizeof(BITMAPFILEHEADER) + m_DibHeader.ImportantColorsUsed * sizeof(RGBQUAD);
+	m_BMPHeader.Offset = m_DibHeaderV5.DIBHeaderSize + sizeof(BITMAPFILEHEADER) + m_DibHeaderV5.ImportantColorCount * sizeof(RGBQUAD);
 
 	ofstream outFile(FileName, ios::binary);
 	if (outFile.good())
 	{
 		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.BmpTag), sizeof(unsigned short));
 		outFile.write(reinterpret_cast<char*>(&m_BMPHeader.Size), 3 * sizeof(unsigned int));
-		outFile.write(reinterpret_cast<char*>(&m_DibHeader), sizeof(DIBHeader));
+		outFile.write(reinterpret_cast<char*>(&m_DibHeaderV5), sizeof(DIBHeader));
 
 		//Indices for Gray Level
-		for (int32_t p = 0; p < m_DibHeader.ImportantColorsUsed; p++)
+		for (int32_t p = 0; p < m_DibHeaderV5.ImportantColorCount; p++)
 		{
 			outFile.write(reinterpret_cast<char*>(&p), 1);
 			outFile.write(reinterpret_cast<char*>(&p), 1);
@@ -533,9 +567,9 @@ bool BMPImporter::WriteBmp8Bit(uint8_t* Buffer, const char* FileName, int Width,
 		}
 
 		const uint8_t* pData = Buffer;
-		for (int32_t h = 0; h < m_DibHeader.Height; h++)
+		for (int32_t h = 0; h < m_DibHeaderV5.Height; h++)
 		{
-			for (int32_t w = 0; w < m_DibHeader.Width; w++)
+			for (int32_t w = 0; w < m_DibHeaderV5.Width; w++)
 			{
 				uint8_t gray = *pData++ ? 255 : 0;
 				outFile.write(reinterpret_cast<char*>(&gray), 1);
@@ -563,17 +597,17 @@ BMPImporter::~BMPImporter()
 
 int BMPImporter::GetWidth()
 {
-	return m_DibHeader.Width;
+	return m_DibHeaderV5.Width;
 }
 
 int BMPImporter::GetHeight()
 {
-	return m_DibHeader.Height;
+	return m_DibHeaderV5.Height;
 }
 
 int BMPImporter::GetBitPerPixel()
 {
-	return m_DibHeader.BitsPerPixel;
+	return m_DibHeaderV5.BitsperPixel;
 }
 
 BGRA BMPImporter::GetPixel( int x, int y )
@@ -582,7 +616,7 @@ BGRA BMPImporter::GetPixel( int x, int y )
 	
 	if (x >= 0 && x < GetWidth() && y >= 0 && y < GetHeight())
 	{
-		size_t channels = m_DibHeader.BitsPerPixel / 8;
+		size_t channels = m_DibHeaderV5.BitsperPixel / 8;
 
 		Color.Blue = m_PixelData[y * m_PixelRowSize + x * channels + 0];
 		Color.Green = m_PixelData[y * m_PixelRowSize + x * channels + 1];
@@ -607,13 +641,13 @@ uint8_t* BMPImporter::GetPixelData()
 
 vector<uint8_t> BMPImporter::GetPixelData32()
 {
-	vector<uint8_t> PixelData32(m_DibHeader.Width * m_DibHeader.Height*4, 0);
+	vector<uint8_t> PixelData32(m_DibHeaderV5.Width * m_DibHeaderV5.Height*4, 0);
 	
 	int k1 = 0;
 	int k2 = 0;
-	for (size_t h = 0; h < m_DibHeader.Height; h++)
+	for (size_t h = 0; h < m_DibHeaderV5.Height; h++)
 	{
-		for (size_t w = 0; w < m_DibHeader.Width; w++)
+		for (size_t w = 0; w < m_DibHeaderV5.Width; w++)
 		{
 			PixelData32[k2 + 0] = m_PixelData[k1 + 0];
 			PixelData32[k2 + 1] = m_PixelData[k1 + 1];
@@ -654,7 +688,7 @@ void BMPImporter::SetPixel(int x, int y, BGRA bgr)
 	}
 }
 
-DIBHeader* BMPImporter::GetBitmapHeader()
+DIBHeaderV5* BMPImporter::GetBitmapHeader()
 {
-	return &m_DibHeader;
+	return &m_DibHeaderV5;
 }

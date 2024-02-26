@@ -32,6 +32,36 @@ struct DIBHeader
 	unsigned int		ImportantColorsUsed;	//number of important colors used, or 0 when every color is important; generally ignored
 };
 
+struct DIBHeaderV5
+{
+	unsigned int	DIBHeaderSize;
+	int				Width;
+	int				Height;
+	unsigned short	Planes;
+	unsigned short	BitsperPixel;
+	unsigned int	Compression;
+	unsigned int	ImageSize;
+	int				XPixelsPerMeter;
+	int				YPixelsPerMeter;
+	unsigned int	ColorsinColorTable;
+	unsigned int	ImportantColorCount;
+
+	//BGRA Color Header
+	unsigned int	Redchannelbitmask;
+	unsigned int	Greenchannelbitmask;
+	unsigned int	Bluechannelbitmask;
+	unsigned int	Alphachannelbitmask;
+	unsigned int	ColorSpaceType;
+	unsigned int	ColorSpaceEndpoints;
+	unsigned int	GammaforRedchannel;
+	unsigned int	GammaforGreenchannel;
+	unsigned int	GammaforBluechannel;
+	unsigned int	Intent;
+	unsigned int	ICCProfileData;
+	unsigned int	ICCProfileSize;
+	unsigned int	Reserved;
+};
+
 struct BGRA
 {
 	uint8_t Blue;
@@ -110,20 +140,21 @@ public:
 	void			SetPixel(int x, int y, BGRA rgb);
 	uint8_t*		GetPixelData();
 	vector<uint8_t>	GetPixelData32();
-	DIBHeader*		GetBitmapHeader();
+	DIBHeaderV5*	GetBitmapHeader();
 
 private:
 	bool ReadBMP(const char* fileName);
 	BGRA BilinearInterp(float Rx, float Ry, int w, int h);
 
 	BitmapFileHeader	m_BMPHeader;
-	DIBHeader			m_DibHeader;
+	DIBHeaderV5			m_DibHeaderV5;
 	BMPColorHeader32	m_BGRAHeader;
 	size_t				m_PixelRowSize;
 	size_t				m_Channels;
 	size_t				m_PixelDataSize = 0;
 	bool				m_TempBuffer;
 	uint8_t*			m_PixelData;
+	uint8_t				m_ColorTable[256];
 
 };
 

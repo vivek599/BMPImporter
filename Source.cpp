@@ -27,95 +27,96 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 //	return 1;
 //}
 
-int main()
-{
-	BMPImporter Texture;
+//int main()
+//{
+//	BMPImporter Texture;
+//
+//    vector<uint8_t> Pixels;
+//
+//    int Width = 1024;
+//    int Height = 1024;
+//    int Channels = 3;
+//    int Bpp = Channels * 8;
+//    int CellSize = Width/16;
+//
+//    Pixels.resize(Width * Height * Bpp, 0xFF);
+//    Texture.LoadBuffer(Pixels.data(), Width, Height, Bpp);
+//
+//    BGRA Black;
+//    Black.Blue  = 0x00;
+//    Black.Green = 0x00;
+//    Black.Red   = 0x00;
+//    Black.Alpha = 0xFF;
+//    
+//    BGRA White;
+//    White.Blue  = 0xFF;
+//    White.Green = 0xFF;
+//    White.Red   = 0xFF;
+//    White.Alpha = 0xFF;
+//
+//    BGRA Gray64;
+//    Gray64.Blue  = 0x40;
+//    Gray64.Green = 0x40;
+//    Gray64.Red   = 0x40;
+//    Gray64.Alpha = 0xFF;
+//    
+//    BGRA Gray192;
+//    Gray192.Blue  = 0x192;
+//    Gray192.Green = 0x192;
+//    Gray192.Red   = 0x192;
+//    Gray192.Alpha = 0xFF;
+//    
+//    BGRA Gray128;
+//    Gray128.Blue  = 0x80;
+//    Gray128.Green = 0x80;
+//    Gray128.Red   = 0x80;
+//    Gray128.Alpha = 0xFF;
+//
+//    for (int h = 0; h < Height; h++)
+//    {
+//        for (int w = 0; w < Width; w++)
+//        {
+//            if (w == 1 || h == 1)
+//            {
+//                Texture.SetPixel(w, h, Black);
+//            }
+//            else if (w == Width - 1 || h == Height - 1)
+//            {
+//                Texture.SetPixel(w, h, Black);
+//            }
+//            else if (w == Width - 2 || h == Height - 2)
+//            {
+//                Texture.SetPixel(w, h, Black);
+//            }
+//            else if (w == (Width + 2) / 2 || h == (Height + 2) / 2)
+//            {
+//                Texture.SetPixel(w, h, Black);
+//            }
+//            else if (w == (Width - 2) / 2 || h == (Height - 2) / 2)
+//            {
+//                Texture.SetPixel(w, h, Black);
+//            }
+//            else if ((w % CellSize == 0) || (h % CellSize == 0))
+//            {
+//                Texture.SetPixel( w, h, Black);
+//            }
+//            else
+//            {
+//                Texture.SetPixel(w, h, Gray192);
+//            }
+//        }
+//    }
+//
+//    Texture.Write("PlaceHolderTexture01.bmp");
+//
+//	//system("pause");
+//	return 1;
+//}
 
-    vector<uint8_t> Pixels;
-
-    int Width = 1024;
-    int Height = 1024;
-    int Channels = 3;
-    int Bpp = Channels * 8;
-    int CellSize = Width/16;
-
-    Pixels.resize(Width * Height * Bpp, 0xFF);
-    Texture.LoadBuffer(Pixels.data(), Width, Height, Bpp);
-
-    BGRA Black;
-    Black.Blue  = 0x00;
-    Black.Green = 0x00;
-    Black.Red   = 0x00;
-    Black.Alpha = 0xFF;
-    
-    BGRA White;
-    White.Blue  = 0xFF;
-    White.Green = 0xFF;
-    White.Red   = 0xFF;
-    White.Alpha = 0xFF;
-
-    BGRA Gray64;
-    Gray64.Blue  = 0x40;
-    Gray64.Green = 0x40;
-    Gray64.Red   = 0x40;
-    Gray64.Alpha = 0xFF;
-    
-    BGRA Gray192;
-    Gray192.Blue  = 0x192;
-    Gray192.Green = 0x192;
-    Gray192.Red   = 0x192;
-    Gray192.Alpha = 0xFF;
-    
-    BGRA Gray128;
-    Gray128.Blue  = 0x80;
-    Gray128.Green = 0x80;
-    Gray128.Red   = 0x80;
-    Gray128.Alpha = 0xFF;
-
-    for (int h = 0; h < Height; h++)
-    {
-        for (int w = 0; w < Width; w++)
-        {
-            if (w == 1 || h == 1)
-            {
-                Texture.SetPixel(w, h, Black);
-            }
-            else if (w == Width - 1 || h == Height - 1)
-            {
-                Texture.SetPixel(w, h, Black);
-            }
-            else if (w == Width - 2 || h == Height - 2)
-            {
-                Texture.SetPixel(w, h, Black);
-            }
-            else if (w == (Width + 2) / 2 || h == (Height + 2) / 2)
-            {
-                Texture.SetPixel(w, h, Black);
-            }
-            else if (w == (Width - 2) / 2 || h == (Height - 2) / 2)
-            {
-                Texture.SetPixel(w, h, Black);
-            }
-            else if ((w % CellSize == 0) || (h % CellSize == 0))
-            {
-                Texture.SetPixel( w, h, Black);
-            }
-            else
-            {
-                Texture.SetPixel(w, h, Gray192);
-            }
-        }
-    }
-
-    Texture.Write("PlaceHolderTexture01.bmp");
-
-	//system("pause");
-	return 1;
-}
-
-#if 0
-BMPImporter importer("Untitled32A.bmp");
+#if 1
+//BMPImporter importer("D:\\MyProjects\\BMPImporter\\1bitbmp.bmp");
 //BMPImporter importer("Untitled.bmp");
+BMPImporter importer("8bitbmp.bmp");
 
 bool CreateUserWindow(HINSTANCE hInstance, int Width, int Height, int nCmdShow)
 {
@@ -179,6 +180,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
         return 0;
 
+    case WM_RBUTTONDOWN:
+    {
+        if (wParam & MK_RBUTTON)
+        {
+            // importer.Write("untitled01.bmp");
+            // MessageBoxA(hwnd, NULL, NULL, MB_OK);
+        }
+    }
+    return 0;
+
     case WM_MOUSEMOVE:
     {
         if (wParam & MK_LBUTTON)
@@ -189,7 +200,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             importer.SetPixel(xPos, importer.GetHeight() - yPos, { 255, 0, 0, 255 });
             InvalidateRect(GetActiveWindow(), nullptr, TRUE);
         }
-
     }
     return 0;
 
