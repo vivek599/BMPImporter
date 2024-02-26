@@ -412,8 +412,9 @@ bool BMPImporter::ReadBMP(const char* fileName)
 			{
 				for (int w = 0; w < m_DibHeaderV5.Width; w++)
 				{
-					int Index = h * m_DibHeaderV5.Width + w;
-					//m_PixelData[Index] = m_ColorTable[m_PixelData[Index]];
+					int Index = (h * m_DibHeaderV5.Width + w);
+					m_PixelData[Index] = m_ColorTable[m_PixelData[Index]] + m_ColorTable[m_PixelData[Index] + 1] + m_ColorTable[m_PixelData[Index] + 2];
+					m_PixelData[Index] /= 3;
 				}
 			}
 		}
